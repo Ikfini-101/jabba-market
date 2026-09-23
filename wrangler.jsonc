@@ -8,7 +8,7 @@
   "d1_databases": [{
     "binding": "DB",
     "database_name": "jabba-db",
-    "database_id": "",
+    "database_id": "195bf669-83ba-48e5-926e-7fd94c19ff0b",
     "migrations_dir": "drizzle"
   }],
   "r2_buckets": [{
