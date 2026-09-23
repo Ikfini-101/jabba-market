@@ -5,7 +5,7 @@ export const siteConfig = {
   heroTitle: "Jabba",
   heroSubtitle: "Fruits, légumes, poissons et fruits de mer, viandes, céréales et épices — commandez en ligne, payez à la livraison.",
   seoDescription: "Jabba : fruits, légumes, produits halieutiques frais et transformés, charcuterie, céréales et épices. Commande en ligne, paiement à la livraison au Sénégal.",
-  url: "",
+  url: "https://jabba-bi.store",
   locale: "fr-FR",
   currency: { code: "XOF", label: "FCFA", decimals: 0 },
   country: "Sénégal",
