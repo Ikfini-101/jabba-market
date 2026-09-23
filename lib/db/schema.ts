@@ -16,6 +16,12 @@ export const products = sqliteTable("products", {
   rarity: text("rarity").default("AVAILABLE"), // RARE | AVAILABLE | IN_STOCK
   images: text("images", { mode: "json" }).$type<string[]>(),
   active: integer("active", { mode: "boolean" }).default(true),
+  sku: text("sku").unique(),
+  shortDescription: text("short_description"),
+  promoPrice: real("promo_price"),
+  unit: text("unit"),
+  stockQuantity: integer("stock_quantity"),
+  stockUnit: text("stock_unit"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .default(sql`(unixepoch())`),
 });
@@ -23,6 +29,7 @@ export const products = sqliteTable("products", {
 export const orders = sqliteTable("orders", {
   id: text("id").primaryKey(),
   customerEmail: text("customer_email").notNull(),
+  customerPhone: text("customer_phone"),
   customerName: text("customer_name"),
   shippingAddress: text("shipping_address", { mode: "json" }).$type<{
     street: string;

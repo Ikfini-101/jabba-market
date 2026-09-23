@@ -1,19 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "blackbazaar",
+  "name": "jabba",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "d1_databases": [{
     "binding": "DB",
-    "database_name": "blackbazaar-db",
-    "database_id": "42e0094a-3296-4ff3-9dc3-75ce04aca633",
+    "database_name": "jabba-db",
+    "database_id": "",
     "migrations_dir": "drizzle"
   }],
   "r2_buckets": [{
     "binding": "PRODUCT_IMAGES",
-    "bucket_name": "blackbazaar-images"
+    "bucket_name": "jabba-images"
   }],
   "observability": { "enabled": true }
 }

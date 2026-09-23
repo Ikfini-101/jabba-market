@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { siteConfig } from "./site-config";
 
 export type CartItem = {
   productId: string;
@@ -13,13 +14,13 @@ export type CartItem = {
 
 function getCart(): CartItem[] {
   if (typeof window === "undefined") return [];
-  const stored = localStorage.getItem("bb-cart");
+  const stored = localStorage.getItem(siteConfig.storageKeys.cart);
   return stored ? JSON.parse(stored) : [];
 }
 
 function saveCart(cart: CartItem[]) {
   if (typeof window !== "undefined") {
-    localStorage.setItem("bb-cart", JSON.stringify(cart));
+    localStorage.setItem(siteConfig.storageKeys.cart, JSON.stringify(cart));
     // Dispatch custom event for Header to update badge
     window.dispatchEvent(new Event("cartUpdated"));
   }

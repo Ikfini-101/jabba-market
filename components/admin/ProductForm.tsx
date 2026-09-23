@@ -3,29 +3,31 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Loader2, X, AlertTriangle } from "lucide-react";
-import { CATEGORIES, COUNTRIES, RARITY, CURRENCY_SYMBOL } from "@/lib/constants";
+import { CATEGORIES, RARITY } from "@/lib/constants";
 
 export default function ProductForm({ initialData }: { initialData?: any }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
+
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
+    sku: initialData?.sku || "",
+    shortDescription: initialData?.shortDescription || "",
     description: initialData?.description || "",
     category: initialData?.category || CATEGORIES[0],
-    country: initialData?.country || COUNTRIES[0].name,
-    isNegotiable: initialData?.isNegotiable || false,
-    priceMin: initialData?.priceMin || "",
-    priceMax: initialData?.priceMax || "",
-    rarity: initialData?.rarity || "AVAILABLE",
+    price: initialData?.price || "",
+    promoPrice: initialData?.promoPrice || "",
+    unit: initialData?.unit || "",
+    stockQuantity: initialData?.stockQuantity || "",
+    stockUnit: initialData?.stockUnit || "",
+    rarity: initialData?.rarity || "IN_STOCK",
     active: initialData?.active ?? true,
     images: initialData?.images || [] as string[],
   });
 
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  // ... (compression and upload logic remains identical)
   async function compressImage(file: File): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -36,7 +38,7 @@ export default function ProductForm({ initialData }: { initialData?: any }) {
         img.onload = () => {
           const canvas = document.createElement("canvas");
           let { width, height } = img;
-          if (width > height) { if (width > 1600) { height *= 1600 / width; width = 1600; } } 
+          if (width > height) { if (width > 1600) { height *= 1600 / width; width = 1600; } }
           else { if (height > 1600) { width *= 1600 / height; height = 1600; } }
           canvas.width = width; canvas.height = height;
           canvas.getContext("2d")?.drawImage(img, 0, 0, width, height);
@@ -61,11 +63,11 @@ export default function ProductForm({ initialData }: { initialData?: any }) {
         if (initialData?.id) uploadData.append("productId", initialData.id);
 
         const res = await fetch("/api/admin/upload", { method: "POST", body: uploadData });
-        if (!res.ok) throw new Error("Upload error");
+        if (!res.ok) throw new Error("Erreur upload");
         newImages.push((await res.json()).url);
       }
       setFormData({ ...formData, images: newImages });
-    } catch (err: any) { setError(err.message); } 
+    } catch (err: any) { setError(err.message); }
     finally { setUploadingImages(false); }
   }
 
@@ -78,19 +80,34 @@ export default function ProductForm({ initialData }: { initialData?: any }) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (formData.images.length === 0) { setError("Il faut au moins 1 photo."); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-    const pMin = parseFloat(formData.priceMin as string);
-    const pMax = parseFloat(formData.priceMax as string);
-    if (formData.isNegotiable && (!pMax || pMax <= pMin)) { setError("Prix maximum invalide."); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (formData.images.length === 0) { setError("Il faut au moins 1 photo."); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+
+    const price = parseInt(String(formData.price), 10);
+    const promoPrice = formData.promoPrice !== "" ? parseInt(String(formData.promoPrice), 10) : null;
+
+    if (!price || price <= 0) { setError("Prix de vente invalide."); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    if (promoPrice !== null && (promoPrice <= 0 || promoPrice >= price)) {
+      setError("Le prix promotionnel doit être inférieur au prix de vente.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
 
     setLoading(true);
     try {
-      const payload = { ...formData, priceMin: pMin, priceMax: formData.isNegotiable ? pMax : null };
+      const payload = {
+        ...formData,
+        price,
+        promoPrice,
+        stockQuantity: formData.stockQuantity !== "" ? parseInt(String(formData.stockQuantity), 10) : null,
+        isNegotiable: false,
+        priceMin: price,
+        priceMax: null,
+      };
       const url = initialData ? `/api/admin/products/${initialData.id}` : "/api/admin/products";
       const res = await fetch(url, { method: initialData ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!res.ok) throw new Error((await res.json()).error || "Erreur sauvegarde");
       router.push("/admin/produits"); router.refresh();
-    } catch (err: any) { setError(err.message); window.scrollTo({ top: 0, behavior: 'smooth' }); } 
+    } catch (err: any) { setError(err.message); window.scrollTo({ top: 0, behavior: "smooth" }); }
     finally { setLoading(false); }
   }
 
@@ -98,16 +115,16 @@ export default function ProductForm({ initialData }: { initialData?: any }) {
     <form onSubmit={onSubmit} className="space-y-8 max-w-3xl mx-auto pb-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
-          {initialData ? "Modifier" : "Nouveau produit"}
+          {initialData ? "Modifier le produit" : "Nouveau produit"}
         </h1>
         <div className="flex items-center gap-3">
           <label className="text-sm font-medium">Actif</label>
           <button
             type="button"
             onClick={() => setFormData({ ...formData, active: !formData.active })}
-            className={`w-14 h-7 rounded-full transition-colors relative flex items-center px-1 ${formData.active ? 'bg-admin-primary-500' : 'bg-gray-300'}`}
+            className={`w-14 h-7 rounded-full transition-colors relative flex items-center px-1 ${formData.active ? "bg-admin-primary-500" : "bg-gray-300"}`}
           >
-            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${formData.active ? 'translate-x-7' : 'translate-x-0'}`} />
+            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${formData.active ? "translate-x-7" : "translate-x-0"}`} />
           </button>
         </div>
       </div>
@@ -119,14 +136,13 @@ export default function ProductForm({ initialData }: { initialData?: any }) {
         </div>
       )}
 
-      {/* SECTION PHOTOS */}
+      {/* PHOTOS */}
       <div className="bg-admin-surface border border-admin-border rounded-xl p-4 md:p-6 space-y-4 shadow-sm">
         <h2 className="text-lg font-bold text-admin-primary-600">Photos (1 à 5)</h2>
-        
         <div className="flex flex-wrap gap-4">
           {formData.images.map((url, i) => (
             <div key={i} className="relative w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden border border-admin-border group shadow-sm">
-              <img src={url} alt={`Photo ${i+1}`} className="w-full h-full object-cover" />
+              <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => removeImage(i)}
@@ -136,7 +152,6 @@ export default function ProductForm({ initialData }: { initialData?: any }) {
               </button>
             </div>
           ))}
-
           {formData.images.length < 5 && (
             <label className="w-24 h-24 md:w-32 md:h-32 border-2 border-dashed border-admin-border hover:border-admin-primary-500 rounded-lg flex flex-col items-center justify-center cursor-pointer text-admin-text-muted hover:text-admin-primary-500 transition-colors bg-admin-bg/50">
               {uploadingImages ? (
@@ -147,35 +162,25 @@ export default function ProductForm({ initialData }: { initialData?: any }) {
                   <span className="text-xs font-medium">Ajouter</span>
                 </>
               )}
-              <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handleImageUpload} disabled={uploadingImages} />
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" capture="environment" multiple className="hidden" onChange={handleImageUpload} disabled={uploadingImages} />
             </label>
           )}
         </div>
       </div>
 
-      {/* SECTION INFO */}
+      {/* INFORMATIONS */}
       <div className="bg-admin-surface border border-admin-border rounded-xl p-4 md:p-6 space-y-5 shadow-sm">
         <h2 className="text-lg font-bold text-admin-primary-600">Informations</h2>
-        
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Nom du produit *</label>
-          <input
-            required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
-            className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
-            placeholder="Ex: Beurre de Karité pur"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Description</label>
-          <textarea
-            value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
-            className="w-full bg-white border border-admin-border rounded-lg p-3 min-h-[120px] focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
-            placeholder="Racontez l'histoire de ce produit..."
-          />
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Référence (SKU) *</label>
+            <input
+              required value={formData.sku} onChange={e => setFormData({ ...formData, sku: e.target.value })}
+              className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500 font-mono"
+              placeholder="Ex: PROD-133"
+            />
+          </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Catégorie *</label>
             <select
@@ -185,79 +190,115 @@ export default function ProductForm({ initialData }: { initialData?: any }) {
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Pays d'origine</label>
-            <select
-              value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })}
-              className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
-            >
-              {COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
-            </select>
-          </div>
+        </div>
 
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Nom du produit *</label>
+          <input
+            required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
+            className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
+            placeholder="Ex: Mangue Kent"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Description courte</label>
+          <input
+            value={formData.shortDescription} onChange={e => setFormData({ ...formData, shortDescription: e.target.value })}
+            className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
+            placeholder="Résumé en une phrase"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Description détaillée</label>
+          <textarea
+            value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
+            className="w-full bg-white border border-admin-border rounded-lg p-3 min-h-[120px] focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
+            placeholder="Description complète du produit"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Disponibilité</label>
+          <select
+            value={formData.rarity} onChange={e => setFormData({ ...formData, rarity: e.target.value })}
+            className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
+          >
+            {RARITY.map(r => <option key={r} value={r}>{r === "IN_STOCK" ? "En stock" : "Rupture de stock"}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* PRIX */}
+      <div className="bg-admin-surface border border-admin-border rounded-xl p-4 md:p-6 space-y-5 shadow-sm">
+        <h2 className="text-lg font-bold text-admin-primary-600">Prix</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Rareté</label>
-            <select
-              value={formData.rarity} onChange={e => setFormData({ ...formData, rarity: e.target.value })}
+            <label className="text-sm font-medium">Prix de vente * (FCFA)</label>
+            <input
+              type="number" step="1" min="1" required
+              value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })}
               className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
-            >
-              {RARITY.map(r => <option key={r} value={r}>{r === 'IN_STOCK' ? 'En stock' : r === 'AVAILABLE' ? 'Disponible' : 'Rare'}</option>)}
-            </select>
+              placeholder="2 500"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Prix promo (FCFA)</label>
+            <input
+              type="number" step="1" min="1"
+              value={formData.promoPrice} onChange={e => setFormData({ ...formData, promoPrice: e.target.value })}
+              className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
+              placeholder="Optionnel"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Unité</label>
+            <input
+              value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })}
+              list="units-list"
+              className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
+              placeholder="kg, pièce, sac..."
+            />
+            <datalist id="units-list">
+              <option value="kg" />
+              <option value="pièce" />
+              <option value="sac de 25 kg" />
+              <option value="sac de 50 kg" />
+              <option value="sac de 5 kg" />
+              <option value="sachet de 500 g" />
+              <option value="boîte" />
+              <option value="bocal de 250 g" />
+              <option value="pot de 800 g" />
+              <option value="paquet" />
+              <option value="douzaine" />
+            </datalist>
           </div>
         </div>
       </div>
 
-      {/* SECTION PRIX */}
+      {/* STOCK */}
       <div className="bg-admin-surface border border-admin-border rounded-xl p-4 md:p-6 space-y-5 shadow-sm">
-        <div className="flex items-center justify-between border-b border-admin-border pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-admin-primary-600">Prix Flexible</h2>
-            <p className="text-xs text-admin-text-muted mt-1">Activer pour la négociation via WhatsApp</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setFormData({ ...formData, isNegotiable: !formData.isNegotiable })}
-            className={`w-14 h-7 rounded-full transition-colors relative flex items-center px-1 ${formData.isNegotiable ? 'bg-admin-accent-500' : 'bg-gray-300'}`}
-          >
-            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${formData.isNegotiable ? 'translate-x-7' : 'translate-x-0'}`} />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+        <h2 className="text-lg font-bold text-admin-primary-600">Stock (usage interne)</h2>
+        <div className="grid grid-cols-2 gap-5">
           <div className="space-y-2">
-            <label className="text-sm font-medium">
-              {formData.isNegotiable ? "Prix minimum *" : "Prix de vente *"}
-            </label>
-            <div className="relative">
-              <input
-                type="number" step="0.01" min="0" required
-                value={formData.priceMin} onChange={e => setFormData({ ...formData, priceMin: e.target.value })}
-                className="w-full bg-white border border-admin-border rounded-lg p-3 pr-10 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
-                placeholder="0.00"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-admin-text-muted font-medium">
-                {CURRENCY_SYMBOL}
-              </div>
-            </div>
+            <label className="text-sm font-medium">Quantité</label>
+            <input
+              type="number" step="1" min="0"
+              value={formData.stockQuantity} onChange={e => setFormData({ ...formData, stockQuantity: e.target.value })}
+              className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
+              placeholder="100"
+            />
           </div>
-
-          {formData.isNegotiable && (
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-admin-accent-600">Prix maximum *</label>
-              <div className="relative">
-                <input
-                  type="number" step="0.01" min="0" required
-                  value={formData.priceMax} onChange={e => setFormData({ ...formData, priceMax: e.target.value })}
-                  className="w-full bg-admin-accent-50 border border-admin-accent-400 rounded-lg p-3 pr-10 focus:outline-none focus:border-admin-accent-600 focus:ring-1 focus:ring-admin-accent-600"
-                  placeholder="0.00"
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-admin-accent-600 font-medium">
-                  {CURRENCY_SYMBOL}
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Unité de stock</label>
+            <input
+              value={formData.stockUnit} onChange={e => setFormData({ ...formData, stockUnit: e.target.value })}
+              className="w-full bg-white border border-admin-border rounded-lg p-3 focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500"
+              placeholder="kg"
+            />
+          </div>
         </div>
       </div>
 

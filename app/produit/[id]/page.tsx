@@ -3,16 +3,17 @@
 import { useEffect, useState, use } from "react";
 import { Header, Footer } from "@/components/storefront/Layout";
 import Link from "next/link";
-import { ArrowLeft, ShoppingBag, Loader2, MessageCircle } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Loader2 } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { RARITY_CONFIG, CURRENCY_SYMBOL } from "@/lib/constants";
+import { RARITY_CONFIG } from "@/lib/constants";
+import { formatPrice, effectivePrice, discountPercent, formatUnit } from "@/lib/format";
 import { useRouter } from "next/navigation";
 
 export default function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { addItem } = useCart();
+  const { addToCart } = useCart();
   const router = useRouter();
   
   const [activeImage, setActiveImage] = useState(0);
@@ -21,7 +22,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
   useEffect(() => {
     async function fetchProduct() {
       try {
-        const res = await fetch(`/api/admin/products/${id}`);
+        const res = await fetch(`/api/products/${id}`);
         const data = await res.json();
         setProduct(data);
       } catch (err) {
@@ -50,16 +51,18 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     </div>
   );
 
-  const rarityConf = RARITY_CONFIG[product.rarity as keyof typeof RARITY_CONFIG] || RARITY_CONFIG.AVAILABLE;
+  const rarityConf = RARITY_CONFIG[product.rarity as keyof typeof RARITY_CONFIG] || RARITY_CONFIG.IN_STOCK;
 
   const handleAddToCart = () => {
-    addItem(product, quantity);
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      price: effectivePrice(product),
+      quantity,
+      image: product.images?.[0],
+      isNegotiable: product.isNegotiable ?? false,
+    });
     router.push('/panier');
-  };
-
-  const handleWhatsApp = () => {
-    const text = encodeURIComponent(`Bonjour, je suis intéressé par le produit "${product.name}". Est-il possible d'en discuter ?`);
-    window.open(`https://wa.me/33700000000?text=${text}`, '_blank');
   };
 
   return (
@@ -113,17 +116,30 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               
               <h1 className="text-4xl md:text-5xl font-black text-gray-800 tracking-tight">{product.name}</h1>
               
-              <div className="flex items-center gap-4">
-                {product.isNegotiable ? (
-                  <span className="text-3xl font-black text-admin-accent-500">
-                    {product.priceMin}{CURRENCY_SYMBOL} – {product.priceMax}{CURRENCY_SYMBOL}
-                  </span>
-                ) : (
-                  <span className="text-3xl font-black text-bb-gold">
-                    {product.priceMin}{CURRENCY_SYMBOL}
-                  </span>
-                )}
-                <span 
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-baseline gap-2">
+                  {product.promoPrice != null && product.promoPrice < product.priceMin ? (
+                    <>
+                      <span className="text-3xl font-black text-admin-accent-500">
+                        {formatPrice(product.promoPrice)}
+                      </span>
+                      <span className="text-xl font-semibold text-gray-400 line-through">
+                        {formatPrice(product.priceMin)}
+                      </span>
+                      <span className="bg-admin-accent-100 text-admin-accent-700 text-sm font-bold px-2 py-0.5 rounded-full">
+                        -{discountPercent(product)} %
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-3xl font-black text-[var(--color-brand)]">
+                      {formatPrice(product.priceMin)}
+                    </span>
+                  )}
+                  {product.unit && (
+                    <span className="text-base text-gray-500 font-medium">{formatUnit(product.unit)}</span>
+                  )}
+                </div>
+                <span
                   className="px-3 py-1 text-sm font-bold rounded-lg border glass-sm shadow-md"
                   style={{ color: rarityConf.color, borderColor: `${rarityConf.color}40` }}
                 >
@@ -138,45 +154,27 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
 
             {/* Action Box */}
             <div className="mt-auto glass-sm border border-white/60 rounded-2xl p-6 shadow-md">
-              {product.isNegotiable ? (
-                <div className="space-y-4">
-                  <div className="bg-admin-accent-50 border border-admin-accent-200 rounded-xl p-4 flex gap-4">
-                    <MessageCircle className="text-admin-accent-600 shrink-0" size={24} />
-                    <div>
-                      <h4 className="font-bold text-admin-accent-900 mb-1">Produit rare à négocier</h4>
-                      <p className="text-sm text-admin-accent-800 font-medium">
-                        Ce produit d'exception est disponible sur demande. Contactez-nous sur WhatsApp pour finaliser le prix et organiser la livraison.
-                      </p>
-                    </div>
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <span className="font-bold text-gray-800">Quantité</span>
+                  <div className="flex items-center bg-transparent border border-white/60 rounded-xl">
+                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-4 py-3 hover:bg-neutral-200 transition-colors font-bold text-gray-800 rounded-l-xl">-</button>
+                    <span className="w-12 text-center font-bold text-gray-800">{quantity}</span>
+                    <button onClick={() => setQuantity(quantity + 1)} className="px-4 py-3 hover:bg-neutral-200 transition-colors font-bold text-gray-800 rounded-r-xl">+</button>
                   </div>
-                  <button 
-                    onClick={handleWhatsApp}
-                    className="w-full bg-[#25D366] hover:bg-[#1ebc59] text-white font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 transition-transform hover:-translate-y-1 shadow-lg shadow-[#25D366]/30"
-                  >
-                    <MessageCircle size={24} />
-                    Négocier sur WhatsApp
-                  </button>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold text-gray-800">Quantité</span>
-                    <div className="flex items-center bg-transparent border border-white/60 rounded-xl">
-                      <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-4 py-3 hover:bg-neutral-200 transition-colors font-bold text-gray-800 rounded-l-xl">-</button>
-                      <span className="w-12 text-center font-bold text-gray-800">{quantity}</span>
-                      <button onClick={() => setQuantity(quantity + 1)} className="px-4 py-3 hover:bg-neutral-200 transition-colors font-bold text-gray-800 rounded-r-xl">+</button>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    onClick={handleAddToCart}
-                    className="w-full glass-gold hover:glass-gold text-gray-800 font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 transition-transform hover:-translate-y-1 shadow-lg shadow-bb-gold/30"
-                  >
-                    <ShoppingBag size={24} />
-                    Ajouter au panier • {(product.priceMin * quantity).toFixed(2)}{CURRENCY_SYMBOL}
-                  </button>
-                </div>
-              )}
+
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.rarity === "OUT_OF_STOCK"}
+                  className="w-full glass-brand text-gray-800 font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 transition-transform hover:-translate-y-1 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                >
+                  <ShoppingBag size={24} />
+                  {product.rarity === "OUT_OF_STOCK"
+                    ? "Rupture de stock"
+                    : `Ajouter au panier • ${formatPrice(effectivePrice(product) * quantity)}`}
+                </button>
+              </div>
             </div>
           </div>
         </div>

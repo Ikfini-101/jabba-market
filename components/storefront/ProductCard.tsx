@@ -1,8 +1,12 @@
 import Link from "next/link";
-import { RARITY_CONFIG, CURRENCY_SYMBOL } from "@/lib/constants";
+import { RARITY_CONFIG } from "@/lib/constants";
+import { effectivePrice, formatPrice, formatUnit, discountPercent } from "@/lib/format";
 
 export default function ProductCard({ product }: { product: any }) {
-  const rarityConf = RARITY_CONFIG[product.rarity as keyof typeof RARITY_CONFIG] || RARITY_CONFIG.AVAILABLE;
+  const rarityConf = RARITY_CONFIG[product.rarity as keyof typeof RARITY_CONFIG] || RARITY_CONFIG.IN_STOCK;
+  const isPromo = product.promoPrice != null && product.promoPrice < product.priceMin;
+  const price = effectivePrice({ price: product.priceMin, promoPrice: product.promoPrice });
+  const discount = discountPercent({ price: product.priceMin, promoPrice: product.promoPrice });
 
   return (
     <Link href={`/produit/${product.id}`} className="group glass-sm flex flex-col overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300 relative">
@@ -11,10 +15,10 @@ export default function ProductCard({ product }: { product: any }) {
         {rarityConf.label}
       </div>
 
-      {/* Pays */}
-      {product.country && (
-        <div className="absolute top-3 left-3 z-10 px-3 py-1 text-xs font-bold text-gray-600 glass-xs">
-          {product.country}
+      {/* Badge Promo */}
+      {isPromo && (
+        <div className="absolute top-3 left-3 z-10 px-3 py-1 text-xs font-bold text-white bg-red-500 rounded-full shadow-md">
+          -{discount}%
         </div>
       )}
 
@@ -35,16 +39,17 @@ export default function ProductCard({ product }: { product: any }) {
           <p className="text-xs text-gray-500 truncate mt-0.5">{product.category}</p>
         </div>
         
-        {/* Curseur de prix flexible */}
-        <div className="mt-auto space-y-2 pt-2">
-          <div className="flex justify-between items-center text-xs font-bold text-gray-700">
-            <span>{product.priceMin}{CURRENCY_SYMBOL}</span>
-            <span className="uppercase tracking-wider text-[9px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Flexible</span>
-            <span>{product.priceMax ? product.priceMax : Math.round(product.priceMin * 1.5)}{CURRENCY_SYMBOL}</span>
-          </div>
-          <div className="relative w-full h-1.5 bg-gray-200 rounded-full">
-             <div className="absolute top-0 left-[20%] right-[30%] h-full bg-bb-gold/80 rounded-full"></div>
-             <div className="absolute top-1/2 left-[45%] -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white border-2 border-bb-gold rounded-full shadow-sm"></div>
+        {/* Prix */}
+        <div className="mt-auto pt-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-black text-gray-800">
+              {formatPrice(price)}{formatUnit(product.unit)}
+            </span>
+            {isPromo && (
+              <span className="text-xs font-medium text-gray-400 line-through">
+                {formatPrice(product.priceMin)}
+              </span>
+            )}
           </div>
         </div>
       </div>

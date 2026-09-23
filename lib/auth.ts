@@ -1,16 +1,22 @@
 // Auth helper — JWT maison avec jose + bcryptjs (BB-03 §4)
 // ⚠️ JAMAIS bcrypt (binding C++ natif), toujours bcryptjs (pur JS)
+// ⚠️ JWT_SECRET validé lazily (pas au top-level) pour éviter erreur next build
 
 import { SignJWT, jwtVerify } from "jose";
 import { hash, compare } from "bcryptjs";
 import { cookies } from "next/headers";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "bb-jwt-secret-change-in-production"
-);
-
-const COOKIE_NAME = "bb-admin-token";
+const COOKIE_NAME = "jabba-admin-token";
 const TOKEN_EXPIRY = "24h";
+
+/** Lazy getter — évalue JWT_SECRET à la demande, jamais au chargement du module */
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET is required. Set it in .dev.vars (local) or as a wrangler secret (production).");
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export async function hashPassword(password: string): Promise<string> {
   return hash(password, 12);
@@ -31,12 +37,12 @@ export async function signToken(payload: {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(TOKEN_EXPIRY)
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function verifyToken(token: string) {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return payload as { adminId: string; email: string };
   } catch {
     return null;

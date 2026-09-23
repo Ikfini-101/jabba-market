@@ -1,13 +1,10 @@
-import { getDb } from "./index";
-import { admins } from "./schema";
-import { hashPassword } from "../auth";
+// B9 FIX: Les credentials admin ne sont PLUS hardcodés ici.
+// Utiliser scripts/seed-admin.ts avec les valeurs de .dev.vars
+// Ce fichier est conservé pour compatibilité mais ne doit PAS être appelé.
 
 export async function forceSeedAdmin() {
-  const db = await getDb();
-  const hash = await hashPassword("BlackBazaar2026!Secure");
-  await db.insert(admins).values({
-    id: crypto.randomUUID(),
-    email: "admin@blackbazaar.com",
-    passwordHash: hash
-  }).onConflictDoNothing();
+  throw new Error(
+    "forceSeedAdmin() est désactivé (B9 fix). " +
+    "Utiliser: ADMIN_EMAIL=... ADMIN_PASSWORD=... npx tsx scripts/seed-admin.ts"
+  );
 }

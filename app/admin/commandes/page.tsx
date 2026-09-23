@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, ShoppingBag, Eye } from "lucide-react";
-import { ORDER_STATUS_CONFIG, ORDER_STATUSES, CURRENCY_SYMBOL } from "@/lib/constants";
+import { ORDER_STATUS_CONFIG, ORDER_STATUSES } from "@/lib/constants";
+import { formatPrice } from "@/lib/format";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -79,7 +80,7 @@ export default function AdminOrders() {
                 </div>
                 
                 <div className="flex items-center justify-between md:justify-end gap-6 mt-2 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 border-admin-border">
-                  <span className="font-bold text-lg text-admin-text">{order.total}{CURRENCY_SYMBOL}</span>
+                  <span className="font-bold text-lg text-admin-text">{formatPrice(order.total)}</span>
                   <Link 
                     href={`/admin/commandes/${order.id}`}
                     className="p-2 bg-neutral-100 hover:bg-admin-primary-500 hover:text-white text-admin-text rounded-lg transition-colors flex items-center gap-2"

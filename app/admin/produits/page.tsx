@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Edit2, Loader2, Image as ImageIcon } from "lucide-react";
-import { CURRENCY_SYMBOL } from "@/lib/constants";
+import { formatPrice } from "@/lib/format";
 import { Package } from "lucide-react";
 
 export default function AdminProducts() {
@@ -81,7 +81,7 @@ export default function AdminProducts() {
                   <span>{product.category}</span>
                   <span>•</span>
                   <span className="text-admin-primary-600 font-medium bg-admin-primary-50 px-2 py-0.5 rounded text-xs">
-                    {product.isNegotiable ? `${product.priceMin}${CURRENCY_SYMBOL} - ${product.priceMax}${CURRENCY_SYMBOL}` : `${product.priceMin}${CURRENCY_SYMBOL}`}
+                    {formatPrice(product.price)}
                   </span>
                 </div>
               </div>

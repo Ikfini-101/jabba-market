@@ -4,25 +4,24 @@ import { Header, Footer } from "@/components/storefront/Layout";
 import { useCart } from "@/lib/cart";
 import { Trash2, ArrowRight, Loader2, ShoppingBag } from "lucide-react";
 import Link from "next/link";
-import { CURRENCY_SYMBOL } from "@/lib/constants";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatPrice } from "@/lib/format";
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity, clearCart, total } = useCart();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const [form, setForm] = useState({
     email: "",
     name: "",
+    phone: "",
     street: "",
     city: "",
     postalCode: "",
-    country: "France"
+    country: "Sénégal"
   });
-
-  const total = cart.reduce((acc, item) => acc + (item.priceMin || item.price) * item.quantity, 0);
 
   async function handleCheckout(e: React.FormEvent) {
     e.preventDefault();
@@ -31,20 +30,18 @@ export default function CartPage() {
     setLoading(true);
     try {
       const payload = {
-        customerEmail: form.email,
-        customerName: form.name,
-        shippingAddress: {
+        email: form.email,
+        name: form.name,
+        phone: form.phone,
+        address: {
           street: form.street,
           city: form.city,
           postalCode: form.postalCode,
           country: form.country
         },
         items: cart.map(item => ({
-          productId: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.priceMin,
-          image: item.images?.[0]
+          productId: item.productId,
+          quantity: item.quantity
         }))
       };
 
@@ -90,18 +87,18 @@ export default function CartPage() {
             {/* Items List */}
             <div className="flex-1 space-y-6">
               {cart.map((item) => (
-                <div key={item.id} className="flex flex-col sm:flex-row gap-6 glass-sm border border-white/60 p-5 rounded-2xl shadow-md relative pr-12">
+                <div key={item.productId} className="flex flex-col sm:flex-row gap-6 glass-sm border border-white/60 p-5 rounded-2xl shadow-md relative pr-12">
                   <button 
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => removeFromCart(item.productId)}
                     className="absolute top-5 right-5 text-gray-500 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50"
                   >
                     <Trash2 size={20} />
                   </button>
 
                   <div className="w-24 h-24 sm:w-32 sm:h-32 bg-transparent rounded-xl overflow-hidden shrink-0 border border-white/60">
-                    {item.images?.[0] ? (
+                    {item.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-medium">Sans image</div>
                     )}
@@ -111,25 +108,25 @@ export default function CartPage() {
                     <div>
                       <h3 className="text-lg md:text-xl font-bold text-gray-800 pr-8">{item.name}</h3>
                       <p className="text-sm font-bold text-bb-gold glass-gold px-2 py-0.5 rounded inline-block mt-2">
-                        {item.priceMin.toFixed(2)}{CURRENCY_SYMBOL} l&apos;unité
+                        {formatPrice(item.price)} l&apos;unité
                       </p>
                     </div>
 
                     <div className="flex justify-between items-center mt-4">
                       <div className="flex items-center bg-transparent border border-white/60 rounded-lg">
                         <button 
-                          onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                          onClick={() => updateQuantity(item.productId, Math.max(1, item.quantity - 1))}
                           className="px-3 py-1 hover:bg-neutral-200 transition-colors font-bold text-gray-800"
                         >-</button>
                         <span className="w-10 text-center font-bold text-gray-800 text-sm">{item.quantity}</span>
                         <button 
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                           className="px-3 py-1 hover:bg-neutral-200 transition-colors font-bold text-gray-800"
                         >+</button>
                       </div>
                       
                       <span className="font-black text-xl text-gray-800">
-                        {(item.priceMin * item.quantity).toFixed(2)}{CURRENCY_SYMBOL}
+                        {formatPrice(item.price * item.quantity)}
                       </span>
                     </div>
                   </div>
@@ -144,17 +141,11 @@ export default function CartPage() {
                 
                 <div className="flex justify-between items-center mb-8">
                   <span className="text-gray-500 font-medium">Total ({cart.length} articles)</span>
-                  <span className="text-3xl font-black text-bb-gold">{total.toFixed(2)}{CURRENCY_SYMBOL}</span>
+                  <span className="text-3xl font-black text-bb-gold">{formatPrice(total)}</span>
                 </div>
 
                 <form onSubmit={handleCheckout} className="space-y-4">
                   <h3 className="font-bold text-lg mb-2 text-gray-800">Livraison</h3>
-                  
-                  <input
-                    type="email" required placeholder="Email *"
-                    value={form.email} onChange={e => setForm({...form, email: e.target.value})}
-                    className="w-full bg-transparent border border-white/60 text-gray-800 rounded-xl p-3.5 focus:outline-none focus:border-bb-gold focus:ring-1 focus:ring-bb-gold font-medium placeholder-admin-text-muted"
-                  />
                   
                   <input
                     type="text" required placeholder="Nom complet *"
@@ -163,26 +154,38 @@ export default function CartPage() {
                   />
                   
                   <input
-                    type="text" required placeholder="Adresse *"
+                    type="tel" required placeholder="Téléphone *"
+                    value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+                    className="w-full bg-transparent border border-white/60 text-gray-800 rounded-xl p-3.5 focus:outline-none focus:border-bb-gold focus:ring-1 focus:ring-bb-gold font-medium placeholder-admin-text-muted"
+                  />
+                  
+                  <input
+                    type="email" required placeholder="Email *"
+                    value={form.email} onChange={e => setForm({...form, email: e.target.value})}
+                    className="w-full bg-transparent border border-white/60 text-gray-800 rounded-xl p-3.5 focus:outline-none focus:border-bb-gold focus:ring-1 focus:ring-bb-gold font-medium placeholder-admin-text-muted"
+                  />
+                  
+                  <input
+                    type="text" required placeholder="Quartier, rue, point de repère *"
                     value={form.street} onChange={e => setForm({...form, street: e.target.value})}
                     className="w-full bg-transparent border border-white/60 text-gray-800 rounded-xl p-3.5 focus:outline-none focus:border-bb-gold focus:ring-1 focus:ring-bb-gold font-medium placeholder-admin-text-muted"
                   />
                   
                   <div className="grid grid-cols-2 gap-3">
                     <input
-                      type="text" required placeholder="Code postal *"
-                      value={form.postalCode} onChange={e => setForm({...form, postalCode: e.target.value})}
+                      type="text" required placeholder="Ville *"
+                      value={form.city} onChange={e => setForm({...form, city: e.target.value})}
                       className="w-full bg-transparent border border-white/60 text-gray-800 rounded-xl p-3.5 focus:outline-none focus:border-bb-gold focus:ring-1 focus:ring-bb-gold font-medium placeholder-admin-text-muted"
                     />
                     <input
-                      type="text" required placeholder="Ville *"
-                      value={form.city} onChange={e => setForm({...form, city: e.target.value})}
+                      type="text" placeholder="Code postal (facultatif)"
+                      value={form.postalCode} onChange={e => setForm({...form, postalCode: e.target.value})}
                       className="w-full bg-transparent border border-white/60 text-gray-800 rounded-xl p-3.5 focus:outline-none focus:border-bb-gold focus:ring-1 focus:ring-bb-gold font-medium placeholder-admin-text-muted"
                     />
                   </div>
                   
                   <input
-                    type="text" required disabled value="France"
+                    type="text" required disabled value="Sénégal"
                     className="w-full bg-transparent border border-white/60 text-gray-500 rounded-xl p-3.5 font-bold cursor-not-allowed"
                   />
 
@@ -196,7 +199,7 @@ export default function CartPage() {
                     )}
                   </button>
                   <p className="text-xs text-center text-gray-500 font-medium mt-4">
-                    Paiement sécurisé à la livraison (MVP).
+                    Paiement à la livraison
                   </p>
                 </form>
               </div>

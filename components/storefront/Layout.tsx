@@ -18,7 +18,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-24">
           <Link href="/" className="flex items-center">
-            <Image src="/logo-transparent.png" alt="Black Bazaar" width={200} height={64} className="h-16 w-auto object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300" priority />
+            <Image src="/logo-transparent.png" alt="Jabba" width={200} height={64} className="h-16 w-auto object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300" priority />
           </Link>
 
           {/* Desktop Nav */}

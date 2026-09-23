@@ -66,7 +66,7 @@ export default function AdminLogin() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full bg-white border border-admin-border rounded-lg py-3 pl-10 pr-4 text-admin-text focus:outline-none focus:border-admin-primary-500 focus:ring-1 focus:ring-admin-primary-500 transition-shadow"
-                placeholder="admin@blackbazaar.com"
+                placeholder="admin@jabba.local"
               />
             </div>
           </div>

@@ -60,7 +60,6 @@ export async function POST(request: Request) {
       active: active !== false,
     });
 
-    const created = await db.select().from(products).where(({ id: pid }) => pid.equals(id)).get();
 
     return NextResponse.json({ id, success: true }, { status: 201 });
   } catch (error) {

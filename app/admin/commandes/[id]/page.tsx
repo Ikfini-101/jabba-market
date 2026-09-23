@@ -3,7 +3,8 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Save, MapPin } from "lucide-react";
-import { ORDER_STATUS_CONFIG, ORDER_STATUSES, CURRENCY_SYMBOL } from "@/lib/constants";
+import { ORDER_STATUS_CONFIG, ORDER_STATUSES } from "@/lib/constants";
+import { formatPrice } from "@/lib/format";
 
 export default function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -132,14 +133,14 @@ export default function OrderDetail({ params }: { params: Promise<{ id: string }
                 </div>
               </div>
               <div className="font-bold">
-                {(item.price * item.quantity).toFixed(2)}{CURRENCY_SYMBOL}
+                {formatPrice(item.price * item.quantity)}
               </div>
             </div>
           ))}
         </div>
         <div className="flex justify-between items-center mt-4 pt-4 border-t border-admin-border">
           <span className="text-lg font-bold">Total payé</span>
-          <span className="text-2xl font-black text-admin-primary-600">{order.total.toFixed(2)}{CURRENCY_SYMBOL}</span>
+          <span className="text-2xl font-black text-admin-primary-600">{formatPrice(order.total)}</span>
         </div>
       </div>
     </div>

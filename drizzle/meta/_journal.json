@@ -8,6 +8,20 @@
       "when": 1788030494351,
       "tag": "0000_chemical_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790188397056,
+      "tag": "0001_flawless_sebastian_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790188439288,
+      "tag": "0002_past_veda",
+      "breakpoints": true
     }
   ]
 }
